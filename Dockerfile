@@ -5,7 +5,6 @@ RUN apk add musl-dev openssl-dev
 WORKDIR /build
 ADD . .
 
-RUN cargo build --release
 RUN cargo install --path $PWD
 
 FROM alpine:3.14
