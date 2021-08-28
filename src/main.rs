@@ -33,6 +33,9 @@ struct Config {
     #[envconfig(from = "STREAM_GROUP", default = "email-verification")]
     pub stream_group: String,
 
+    #[envconfig(from = "VERIFICATION_URL", default = "https://2read.online/auth/verificate")]
+    pub verification_url: String,
+
     #[envconfig(from = "MAILGUN_DOMAIN", default = "2read.online")]
     pub mailgun_domain: String,
 
@@ -75,16 +78,15 @@ fn parse_field(map: &HashMap<String, Value>, key: &'static str) -> Option<String
 
 async fn send_verification(config: Config, receiver: Receiver<VerificationMessage>) {
     loop {
-        info!("Waiting for data...");
         let msg = match receiver.recv().await {
             Ok(msg) => msg,
             Err(err) => {
                 error!("Failed to receive notification: {:?}", err);
-                return;
+                continue;
             }
         };
 
-        let template_vars = json!({"hash": msg.hash});
+        let template_vars = json!({"verification_url": config.verification_url,"hash": msg.hash});
         let response = Client::new()
             .post(format!("https://api.eu.mailgun.net/v3/{}/messages",
                           config.mailgun_domain))
@@ -135,7 +137,7 @@ async fn read_notifications(conf: Config, sender: Sender<VerificationMessage>) {
 
     let created: Result<(), _> = con.xgroup_create(stream_key, stream_group, "$");
     if let Err(e) = created {
-        println!("Group already exists: {:?}", e)
+        warn!("Group already exists: {:?}", e)
     }
 
     info!("Waiting for notifications from {}", stream_key);
@@ -154,7 +156,7 @@ async fn read_notifications(conf: Config, sender: Sender<VerificationMessage>) {
 
         for StreamKey { ids, .. } in notifications.keys {
             for StreamId { id, map } in ids {
-                debug!("Receive notificat ID {}", id);
+                debug!("Receive notification ID {}", id);
                 let email = parse_field(&map, "email");
                 let verification_hash = parse_field(&map, "verification_hash");
 
@@ -192,7 +194,6 @@ async fn main() {
     info!("Start with configuration: {:?}", conf);
 
     let (sender, receiver) = bounded(5);
-    join!(
-        tokio::spawn(read_notifications(conf.clone(), sender)),
+    let _ = join!(tokio::spawn(read_notifications(conf.clone(), sender)),
         tokio::spawn(send_verification(conf.clone(), receiver)));
 }
