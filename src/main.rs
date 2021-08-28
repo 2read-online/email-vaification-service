@@ -45,7 +45,7 @@ struct Config {
     #[envconfig(from = "MAILGUN_FROM")]
     pub mailgun_from: String,
 
-    #[envconfig(from = "MAILGUN_SUBJECT", default = "EMail verification")]
+    #[envconfig(from = "MAILGUN_SUBJECT", default = "EMail Verification")]
     pub mailgun_subject: String,
 
     #[envconfig(from = "MAILGUN_TEMPLATE")]
