@@ -3,7 +3,7 @@
 A service is written in Rust which gets messages from Redis Streams with
 email and verification hash and sends email by using Mailgun service.
 
-# Configuration
+## Configuration
 
 The service must be configured by environment variables
 
@@ -19,7 +19,7 @@ The service must be configured by environment variables
 | MAILGUN_SUBJECT | EMail Verification | subject of the emails |
 | MAILGUN_TEMPLATE | | Template of the email on Mailgun |
 
-# Redis Message Format
+## Redis Message Format
 
 The services expect from the Redis steam messages of the following format
 
