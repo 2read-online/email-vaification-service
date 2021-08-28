@@ -6,9 +6,12 @@ on:
     branches: [ main ]
 jobs:
   build:
-    runs-on: rust:1.54-alpine
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Install Cargo
+        run: apt install -y cargo
+
       - name: Build serivce
         run: cargo build
 
