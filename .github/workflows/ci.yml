@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install Cargo
-        run: sudo apt install -y cargo
+        run: sudo apt update && apt install -y cargo
 
       - name: Build serivce
         run: cargo build
