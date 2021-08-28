@@ -78,6 +78,7 @@ fn parse_field(map: &HashMap<String, Value>, key: &'static str) -> Option<String
 
 async fn send_verification(config: Config, receiver: Receiver<VerificationMessage>) {
     loop {
+        info!("Wait channel");
         let msg = match receiver.recv().await {
             Ok(msg) => msg,
             Err(err) => {
@@ -86,6 +87,7 @@ async fn send_verification(config: Config, receiver: Receiver<VerificationMessag
             }
         };
 
+        info!("Get msg");
         let template_vars = json!({"verification_url": config.verification_url,"hash": msg.hash});
         let response = Client::new()
             .post(format!("https://api.eu.mailgun.net/v3/{}/messages",
