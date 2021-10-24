@@ -78,7 +78,7 @@ fn parse_field(map: &HashMap<String, Value>, key: &'static str) -> Option<String
 
 async fn send_verification(config: Config, receiver: Receiver<VerificationMessage>) {
     loop {
-        info!("Wait channel");
+        debug!("Wait channel");
         let msg = match receiver.recv().await {
             Ok(msg) => msg,
             Err(err) => {
@@ -87,7 +87,6 @@ async fn send_verification(config: Config, receiver: Receiver<VerificationMessag
             }
         };
 
-        info!("Get msg");
         let template_vars = json!({"verification_url": config.verification_url,"hash": msg.hash});
         let response = Client::new()
             .post(format!("https://api.eu.mailgun.net/v3/{}/messages",
@@ -152,7 +151,8 @@ async fn read_notifications(conf: Config, sender: Sender<VerificationMessage>) {
             Ok(notifications) => notifications,
             Err(err) => {
                 error!("Failed to read stream {:?}", err);
-                exit(-1);
+                task::sleep(Duration::from_millis(1000)).await;
+                continue;
             }
         };
 
@@ -193,7 +193,7 @@ async fn main() {
         }
     };
 
-    info!("Start with configuration: {:?}", conf);
+    debug!("Start with configuration: {:?}", conf);
 
     let (sender, receiver) = bounded(5);
     let _ = join!(tokio::spawn(read_notifications(conf.clone(), sender)),
