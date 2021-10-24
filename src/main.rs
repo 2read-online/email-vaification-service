@@ -14,12 +14,11 @@ use async_std::task;
 use envconfig::Envconfig;
 use futures::join;
 use log::{debug, error, info, LevelFilter, warn};
-use redis::{Commands, Value, RedisError};
+use redis::{Commands, Value};
 use redis::streams::{StreamId, StreamKey, StreamReadOptions, StreamReadReply};
 use reqwest::{Client, StatusCode};
 use serde_json::json;
 use simple_logger::SimpleLogger;
-use term::terminfo::Error::IoError;
 
 #[derive(Envconfig)]
 #[derive(Debug)]
@@ -137,7 +136,7 @@ async fn read_notifications(conf: Config, sender: Sender<VerificationMessage>) {
 
     info!("Connected to redis");
 
-    let created: Result<(), _> = con.xgroup_create(stream_key, stream_group, "$");
+    let created: Result<(), _> = con.xgroup_create_mkstream(stream_key, stream_group, "$");
     if let Err(e) = created {
         warn!("Group already exists: {:?}", e)
     }
@@ -152,11 +151,7 @@ async fn read_notifications(conf: Config, sender: Sender<VerificationMessage>) {
             Ok(notifications) => notifications,
             Err(err) => {
                 error!("Failed to read stream {:?}", err);
-                if ErrorRepr::IoError(err) {
-                    exit(-1);
-                }
-                task::sleep(Duration::from_millis(1000)).await;
-                continue;
+                exit(-1);
             }
         };
 
