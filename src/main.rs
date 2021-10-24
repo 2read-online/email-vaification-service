@@ -14,11 +14,12 @@ use async_std::task;
 use envconfig::Envconfig;
 use futures::join;
 use log::{debug, error, info, LevelFilter, warn};
-use redis::{Commands, Value};
+use redis::{Commands, Value, RedisError};
 use redis::streams::{StreamId, StreamKey, StreamReadOptions, StreamReadReply};
 use reqwest::{Client, StatusCode};
 use serde_json::json;
 use simple_logger::SimpleLogger;
+use term::terminfo::Error::IoError;
 
 #[derive(Envconfig)]
 #[derive(Debug)]
@@ -151,6 +152,9 @@ async fn read_notifications(conf: Config, sender: Sender<VerificationMessage>) {
             Ok(notifications) => notifications,
             Err(err) => {
                 error!("Failed to read stream {:?}", err);
+                if ErrorRepr::IoError(err) {
+                    exit(-1);
+                }
                 task::sleep(Duration::from_millis(1000)).await;
                 continue;
             }
