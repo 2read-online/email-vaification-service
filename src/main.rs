@@ -1,4 +1,3 @@
-extern crate envconfig;
 extern crate log;
 extern crate redis;
 extern crate reqwest;
@@ -20,40 +19,13 @@ use reqwest::{Client, StatusCode};
 use serde_json::json;
 use simple_logger::SimpleLogger;
 
-#[derive(Envconfig)]
-#[derive(Debug)]
-#[derive(Clone)]
-struct Config {
-    #[envconfig(from = "REDIS_URL", default = "redis://redis:6379/0")]
-    pub redis_url: String,
+use config::Config;
 
-    #[envconfig(from = "STREAM_KEY", default = "/auth/login")]
-    pub stream_key: String,
-
-    #[envconfig(from = "STREAM_GROUP", default = "email-verification")]
-    pub stream_group: String,
-
-    #[envconfig(from = "VERIFICATION_URL", default = "https://2read.online/auth/verificate")]
-    pub verification_url: String,
-
-    #[envconfig(from = "MAILGUN_DOMAIN", default = "2read.online")]
-    pub mailgun_domain: String,
-
-    #[envconfig(from = "MAILGUN_API_KEY")]
-    pub mailgun_api_key: String,
-
-    #[envconfig(from = "MAILGUN_FROM")]
-    pub mailgun_from: String,
-
-    #[envconfig(from = "MAILGUN_SUBJECT", default = "EMail Verification")]
-    pub mailgun_subject: String,
-
-    #[envconfig(from = "MAILGUN_TEMPLATE")]
-    pub mailgun_template: String,
-}
+mod config;
 
 #[derive(Debug)]
 struct VerificationMessage {
+    pub id: String,
     pub email: String,
     pub hash: String,
 }
@@ -95,7 +67,7 @@ async fn send_verification(config: Config, receiver: Receiver<VerificationMessag
             .form(&[
                 ("from", &config.mailgun_from),
                 ("to", &msg.email),
-                ("subject", &config.mailgun_subject),
+                ("subject", &format!("{} ({})", &config.mailgun_subject, &msg.id[8..])),
                 ("template", &config.mailgun_template),
                 ("h:X-Mailgun-Variables", &template_vars.to_string())
             ])
@@ -162,7 +134,11 @@ async fn read_notifications(conf: Config, sender: Sender<VerificationMessage>) {
                 let verification_hash = parse_field(&map, "verification_hash");
 
                 if email.is_some() && verification_hash.is_some() {
-                    let msg = VerificationMessage { email: email.unwrap(), hash: verification_hash.unwrap() };
+                    let msg = VerificationMessage {
+                        id: id.clone(),
+                        email: email.unwrap(),
+                        hash: verification_hash.unwrap(),
+                    };
                     let _ = sender.send(msg).await;
                 } else {
                     warn!("Failed get the needed data");
